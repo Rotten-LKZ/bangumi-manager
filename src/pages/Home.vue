@@ -1,11 +1,12 @@
 <script setup lang="tsx">
-import { dialog } from '@tauri-apps/api'
+import { dialog, path } from '@tauri-apps/api'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElButton, ElMessage } from 'element-plus'
 import FileManager from '../utils/filemanager'
 import type { ACGN, Bangumi, Data } from '../utils/filemanager'
 
+const lastBangumiFormPathNumber = ref(1)
 const tableSearch = ref('')
 const relativePath = ref('')
 const dirs = ref<string[]>([])
@@ -135,10 +136,14 @@ function handleDelete(work: Bangumi) {
 function nameSearch(str: string, cb: any) {
   const results: { value: string }[] = []
   for (const work of manager.data.works) {
-    if (work.name.toLowerCase().includes(str.toLowerCase())) {
-      results.push({
-        value: work.name,
-      })
+    if (work.name.toLowerCase().includes(str.toLowerCase()) && !results.includes({ value: work.name })) {
+      let hasName = false
+      for (const result of results) {
+        if (result.value === work.name)
+          hasName = true
+      }
+      if (!hasName)
+        results.push({ value: work.name })
     }
   }
   cb(results)
@@ -172,18 +177,35 @@ function deleteTag(value: string) {
     bangumiForm.tags.splice(index, 1)
 }
 
-watch([bangumiForm], () => {
+watch(() => bangumiForm.tagStr, () => {
   if (bangumiForm.tagStr.endsWith(' ')) {
     const tag = bangumiForm.tagStr.split(' ')[0]
     if (!bangumiForm.tags.includes(tag))
       bangumiForm.tags.push(bangumiForm.tagStr.split(' ')[0])
     bangumiForm.tagStr = ''
   }
-  if (bangumiForm.path.endsWith('/'))
-    relativePath.value = bangumiForm.path
 })
 
-watch([relativePath], updateDirs)
+watch(() => bangumiForm.path, () => {
+  const paths = bangumiForm.path.split('/')
+  if (paths.length !== lastBangumiFormPathNumber.value) {
+    lastBangumiFormPathNumber.value = paths.length
+    relativePath.value = paths.slice(0, paths.length - 1).join('/')
+  }
+})
+
+watch(() => bangumiForm.id, () => {
+  if (bangumiForm.id === -1) {
+    relativePath.value = ''
+  }
+  else {
+    const paths = manager.data.works[bangumiForm.id].relativePath.split('/')
+    paths.splice(paths.length - 1, 1)
+    relativePath.value = paths.join('/')
+  }
+})
+
+watch(relativePath, updateDirs)
 </script>
 
 <template>
@@ -245,7 +267,7 @@ watch([relativePath], updateDirs)
     </el-table>
   </div>
 
-  <el-dialog v-model="showBangumiDialog" :title="t('homePage.form.title')">
+  <el-dialog v-model="showBangumiDialog" :title="t('homePage.form.title')" @close="closeDialog">
     <el-form :model="bangumiForm">
       <el-form-item :label="t('homePage.table.name')">
         <el-autocomplete
