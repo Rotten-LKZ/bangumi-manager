@@ -91,6 +91,16 @@ function confirmOne() {
   updateData()
 
   // Change to default values
+  setFormToDefaultValues()
+  showBangumiDialog.value = false
+}
+
+function closeDialog() {
+  setFormToDefaultValues()
+  showBangumiDialog.value = false
+}
+
+function setFormToDefaultValues() {
   bangumiForm.id = -1
   bangumiForm.name = ''
   bangumiForm.path = ''
@@ -98,7 +108,6 @@ function confirmOne() {
   bangumiForm.tags = []
   bangumiForm.watched = false
   bangumiForm.type = 'anime'
-  showBangumiDialog.value = false
 }
 
 function updateData() {
@@ -157,6 +166,12 @@ async function updateDirs() {
   }
 }
 
+function deleteTag(value: string) {
+  const index = bangumiForm.tags.indexOf(value)
+  if (index !== -1)
+    bangumiForm.tags.splice(index, 1)
+}
+
 watch([bangumiForm], () => {
   if (bangumiForm.tagStr.endsWith(' ')) {
     const tag = bangumiForm.tagStr.split(' ')[0]
@@ -209,7 +224,9 @@ watch([relativePath], updateDirs)
       </el-table-column>
       <el-table-column :label="t('homePage.table.tags')" width="260">
         <template #default="scope">
-          <span v-for="(value, index) of scope.row.tags" :key="`show-${index}`" class="tags">{{ value }}</span>
+          <el-tag v-for="(value, index) of scope.row.tags" :key="`show-table-${index}`" type="info">
+            {{ value }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column :label="t('homePage.table.operations')">
@@ -248,7 +265,9 @@ watch([relativePath], updateDirs)
       </el-form-item>
       <el-form-item :label="t('homePage.table.tags')">
         <el-input v-model="bangumiForm.tagStr" :placeholder="t('homePage.table.tags')" autocomplete="off" />
-        <span v-for="(value, index) of bangumiForm.tags" :key="index" class="tags form-tags">{{ value }}</span>
+        <el-tag v-for="(value, index) of bangumiForm.tags" :key="`dialog-form-${index}`" type="info" closable class="form-tags" @close="deleteTag(value)">
+          {{ value }}
+        </el-tag>
       </el-form-item>
       <el-form-item :label="t('homePage.form.tips.type')">
         <el-radio v-model="bangumiForm.type" label="anime">
@@ -267,7 +286,7 @@ watch([relativePath], updateDirs)
     </el-form>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="showBangumiDialog = false">{{ t('cancel') }}</el-button>
+        <el-button @click="closeDialog">{{ t('cancel') }}</el-button>
         <el-button type="primary" @click="confirmOne">{{ t('confirm') }}</el-button>
       </span>
     </template>
@@ -279,15 +298,6 @@ watch([relativePath], updateDirs)
   button, .path {
     margin-left: 10px;
   }
-}
-
-.tags {
-  background-color: #f7f7f7;
-  border: 1px solid #d6d5d5;
-  border-radius: 5px;
-  padding: 4px;
-  margin-right: 7px;
-  line-height: 1.2rem;
 }
 
 .form-tags {

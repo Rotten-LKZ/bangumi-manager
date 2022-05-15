@@ -45,10 +45,10 @@ body {
     position: relative;
 
     .bi-translate {
-      transform: scale(2.6);
+      transform: scale(2.2);
       position: absolute;
       right: 20px;
-      top: 20px;
+      top: 14px;
       z-index: 99;
     }
 
