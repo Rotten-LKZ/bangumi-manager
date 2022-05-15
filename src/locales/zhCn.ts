@@ -24,6 +24,8 @@ export default {
       edit: '编辑',
       show: '查看',
       delete: '删除',
+
+      typeToSearch: '输入搜索',
     },
     form: {
       title: '新建 & 修改',

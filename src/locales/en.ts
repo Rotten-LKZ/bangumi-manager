@@ -24,6 +24,8 @@ export default {
       edit: 'Edit',
       show: 'Show',
       delete: 'Delete',
+
+      typeToSearch: 'Type to search',
     },
     form: {
       title: 'New & Edit',

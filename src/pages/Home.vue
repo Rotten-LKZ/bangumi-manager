@@ -1,12 +1,12 @@
 <script setup lang="tsx">
-import type { fs } from '@tauri-apps/api'
 import { dialog } from '@tauri-apps/api'
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElButton, ElMessage } from 'element-plus'
 import FileManager from '../utils/filemanager'
 import type { ACGN, Bangumi, Data } from '../utils/filemanager'
 
+const tableSearch = ref('')
 const relativePath = ref('')
 const dirs = ref<string[]>([])
 const showBangumiDialog = ref(false)
@@ -22,6 +22,14 @@ const bangumiForm = reactive({
 })
 const { t } = useI18n()
 const manager = new FileManager()
+const works = computed(() => {
+  const results: Bangumi[] = []
+  for (const work of data.value.works) {
+    if (work.name.toLowerCase().includes(tableSearch.value.toLowerCase()))
+      results.push(work)
+  }
+  return results
+})
 
 async function importFolder() {
   const res = await dialog.open({
@@ -117,8 +125,8 @@ function handleDelete(work: Bangumi) {
 
 function nameSearch(str: string, cb: any) {
   const results: { value: string }[] = []
-  for (const work of data.value.works) {
-    if (work.name.includes(str)) {
+  for (const work of manager.data.works) {
+    if (work.name.toLowerCase().includes(str.toLowerCase())) {
       results.push({
         value: work.name,
       })
@@ -130,7 +138,7 @@ function nameSearch(str: string, cb: any) {
 function pathSearch(str: string, cb: any) {
   const results: { value: string }[] = []
   for (const dir of dirs.value) {
-    if (dir.includes(str)) {
+    if (dir.toLowerCase().includes(str.toLowerCase())) {
       results.push({
         value: dir,
       })
@@ -188,7 +196,7 @@ watch([relativePath], updateDirs)
     <span class="path">{{ manager.settingsFilePath }}</span>
   </div>
   <div class="data-show">
-    <el-table :data="data.works" style="width: 100%">
+    <el-table :data="works" style="width: 100%">
       <el-table-column :label="t('homePage.table.name')" width="350">
         <template #default="scope">
           <span>{{ scope.row.name }}</span>
@@ -205,6 +213,9 @@ watch([relativePath], updateDirs)
         </template>
       </el-table-column>
       <el-table-column :label="t('homePage.table.operations')">
+        <template #header>
+          <el-input v-model="tableSearch" size="small" :placeholder="t('homePage.table.typeToSearch')" />
+        </template>
         <template #default="scope">
           <el-button size="small" @click="handleEdit(scope.row)">
             {{ t('homePage.table.edit') }}
