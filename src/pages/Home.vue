@@ -1,4 +1,5 @@
 <script setup lang="tsx">
+import type { fs } from '@tauri-apps/api'
 import { dialog } from '@tauri-apps/api'
 import { reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -6,7 +7,8 @@ import { ElButton, ElMessage } from 'element-plus'
 import FileManager from '../utils/filemanager'
 import type { ACGN, Bangumi, Data } from '../utils/filemanager'
 
-const isInit = ref(false)
+const relativePath = ref('')
+const dirs = ref<string[]>([])
 const showBangumiDialog = ref(false)
 const data = ref<Data>({ works: [] })
 const bangumiForm = reactive({
@@ -30,6 +32,7 @@ async function importFolder() {
   if (typeof res === 'string') {
     await manager.init({ folderPath: res })
     updateData()
+    updateDirs()
   }
 }
 
@@ -42,6 +45,7 @@ async function importSettingsFile() {
   if (typeof res === 'string') {
     await manager.init({ settingsFilePath: res })
     updateData()
+    updateDirs()
   }
 }
 
@@ -111,6 +115,40 @@ function handleDelete(work: Bangumi) {
   updateData()
 }
 
+function nameSearch(str: string, cb: any) {
+  const results: { value: string }[] = []
+  for (const work of data.value.works) {
+    if (work.name.includes(str)) {
+      results.push({
+        value: work.name,
+      })
+    }
+  }
+  cb(results)
+}
+
+function pathSearch(str: string, cb: any) {
+  const results: { value: string }[] = []
+  for (const dir of dirs.value) {
+    if (dir.includes(str)) {
+      results.push({
+        value: dir,
+      })
+    }
+  }
+  cb(results)
+}
+
+async function updateDirs() {
+  if (manager.isInit) {
+    const folders = (await manager.getDirs(relativePath.value)).filter(value => value.children !== undefined)
+    const foldersStr: string[] = []
+    for (const folder of folders)
+      foldersStr.push(folder.path.substring(manager.folderPath.replace(/\\/g, '/').endsWith('/') ? manager.folderPath.length : manager.folderPath.length + 1).replace(/\\/g, '/'))
+    dirs.value = foldersStr
+  }
+}
+
 watch([bangumiForm], () => {
   if (bangumiForm.tagStr.endsWith(' ')) {
     const tag = bangumiForm.tagStr.split(' ')[0]
@@ -118,7 +156,11 @@ watch([bangumiForm], () => {
       bangumiForm.tags.push(bangumiForm.tagStr.split(' ')[0])
     bangumiForm.tagStr = ''
   }
+  if (bangumiForm.path.endsWith('/'))
+    relativePath.value = bangumiForm.path
 })
+
+watch([relativePath], updateDirs)
 </script>
 
 <template>
@@ -178,10 +220,20 @@ watch([bangumiForm], () => {
   <el-dialog v-model="showBangumiDialog" :title="t('homePage.form.title')">
     <el-form :model="bangumiForm">
       <el-form-item :label="t('homePage.table.name')">
-        <el-input v-model="bangumiForm.name" :placeholder="t('homePage.table.name')" autocomplete="off" />
+        <el-autocomplete
+          v-model="bangumiForm.name"
+          :fetch-suggestions="nameSearch"
+          :placeholder="t('homePage.table.name')"
+          style="width: 100%"
+        />
       </el-form-item>
       <el-form-item :label="t('homePage.table.path')">
-        <el-input v-model="bangumiForm.path" :placeholder="t('homePage.table.path')" autocomplete="off" />
+        <el-autocomplete
+          v-model="bangumiForm.path"
+          :fetch-suggestions="pathSearch"
+          :placeholder="t('homePage.table.path')"
+          style="width: 100%"
+        />
       </el-form-item>
       <el-form-item :label="t('homePage.table.tags')">
         <el-input v-model="bangumiForm.tagStr" :placeholder="t('homePage.table.tags')" autocomplete="off" />

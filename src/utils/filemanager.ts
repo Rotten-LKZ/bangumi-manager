@@ -51,4 +51,8 @@ export default class FileManager {
   async save() {
     fs.writeFile({ path: this.settingsFilePath, contents: JSON.stringify(this.data) })
   }
+
+  async getDirs(relativePath?: string) {
+    return fs.readDir(await path.join(this.folderPath, relativePath || ''))
+  }
 }
